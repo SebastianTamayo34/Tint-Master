@@ -1,0 +1,206 @@
+/* =========================================================
+   Tint Master Inc — owner dashboard (builds on styles.css)
+   ========================================================= */
+
+[hidden] { display: none !important; }
+
+.owner-page { background: #f4f6f8; min-height: 100vh; }
+.owner-main { padding: 40px 0 80px; }
+.muted { color: var(--gray); }
+code {
+  font-size: .88em;
+  background: var(--sky-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* ---------- Header ---------- */
+.owner-header-actions { display: flex; align-items: center; gap: 18px; }
+.owner-back { color: rgba(255,255,255,.75); text-decoration: none; font-size: .92rem; font-weight: 500; }
+.owner-back:hover { color: var(--white); }
+
+/* ---------- Sign-in cards ---------- */
+.auth-wrap { display: grid; place-items: center; min-height: calc(100vh - var(--header-h) - 120px); }
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 16px 48px rgba(11,14,17,.08);
+}
+.auth-card h1 { font-size: 2.2rem; }
+.auth-card .btn-block { margin-top: 6px; }
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  margin-top: 6px;
+  color: var(--sky-deep);
+  font: 500 .9rem var(--font-body);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ---------- Dashboard ---------- */
+.dash-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.dash-head h1 { margin-bottom: 4px; font-size: clamp(2rem, 4vw, 2.6rem); }
+.dash-head p { margin: 0; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: grid;
+  gap: 2px;
+}
+.stat-num { font-family: var(--font-display); font-size: 2.2rem; line-height: 1; }
+.stat-label { color: var(--gray); font-size: .88rem; }
+.stat-accent { border-color: var(--orange); }
+.stat-accent .stat-num { color: var(--orange); }
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.tabs {
+  display: inline-flex;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+}
+.tabs button {
+  border: 0;
+  background: none;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font: 600 .92rem var(--font-body);
+  color: var(--gray);
+  cursor: pointer;
+}
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); }
+.toolbar-filter { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .9rem; }
+.toolbar-filter select,
+.appt-actions select {
+  font: inherit;
+  font-weight: 500;
+  padding: 8px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+}
+
+.dash-message { color: var(--gray); font-size: .9rem; margin: 8px 0 16px; min-height: 1.4em; }
+
+/* ---------- Appointment list ---------- */
+.day-group { margin-bottom: 28px; }
+.day-title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.day-count {
+  font-size: .78rem;
+  font-weight: 700;
+  background: var(--ink);
+  color: var(--white);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.appt {
+  display: grid;
+  grid-template-columns: 150px 1fr 190px;
+  gap: 20px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 10px;
+}
+.appt.status-new       { border-left-color: var(--orange); }
+.appt.status-confirmed { border-left-color: #1e8e3e; }
+.appt.status-completed { border-left-color: var(--sky-deep); opacity: .85; }
+.appt.status-cancelled { border-left-color: #9aa3ad; opacity: .6; }
+
+.appt-time { font-weight: 700; font-size: .95rem; padding-top: 3px; }
+.appt-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.appt-top h3 { font-family: var(--font-body); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; margin: 0; }
+.appt-contact { margin: 4px 0 12px; font-size: .92rem; }
+.appt-meta { margin: 0; display: grid; gap: 6px; font-size: .9rem; }
+.appt-meta div { display: grid; grid-template-columns: 140px 1fr; gap: 8px; }
+.appt-meta dt { color: var(--gray); }
+.appt-meta dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+
+.appt-actions { display: grid; align-content: start; gap: 8px; }
+.appt-actions label { display: grid; gap: 4px; font-weight: 600; font-size: .82rem; }
+.appt-actions small { font-size: .78rem; }
+
+.pill {
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.pill-new       { background: #fff0e6; color: #b5480b; }
+.pill-confirmed { background: #e6f4ea; color: #137333; }
+.pill-completed { background: var(--sky-soft); color: #0f5f8a; }
+.pill-cancelled { background: #eef0f2; color: #5b6470; }
+
+.tag-mobile {
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: var(--ink);
+  color: var(--white);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .appt { grid-template-columns: 1fr; gap: 10px; }
+  .appt-time { padding: 0; color: var(--orange); }
+  .appt-actions { grid-template-columns: 1fr auto; align-items: end; }
+}
+@media (max-width: 640px) {
+  .owner-back { display: none; }
+  .stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .stat { padding: 12px; }
+  .stat-num { font-size: 1.7rem; }
+  .stat-label { font-size: .75rem; }
+  .appt-meta div { grid-template-columns: 1fr; gap: 0; }
+  .appt-meta dt { font-size: .78rem; }
+  .auth-card { padding: 28px 20px; }
+  .dash-head { align-items: flex-start; }
+}

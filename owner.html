@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Owner Dashboard | Tint Master Inc</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b0e11'/%3E%3Cpath d='M14 20h36v8H36v24h-8V28H14z' fill='%23ff6b18'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Racing+Sans+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/owner.css">
+</head>
+<body class="owner-page">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="index.html">TINT MASTER <span>INC</span></a>
+      <div class="owner-header-actions">
+        <a class="owner-back" href="index.html">← Back to site</a>
+        <button class="btn btn-ghost btn-sm" id="sign-out" type="button" hidden>Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="owner-main">
+
+    <!-- Shown when js/config.js has no Supabase keys yet -->
+    <section class="container auth-wrap" id="view-setup" hidden>
+      <div class="auth-card">
+        <h1>Almost ready</h1>
+        <p>The owner dashboard needs the database connection. Add your Supabase
+           <strong>Project URL</strong> and <strong>anon/publishable key</strong> to
+           <code>js/config.js</code>, then reload this page.</p>
+        <p class="muted">Step-by-step instructions are in <code>README.md</code>.</p>
+      </div>
+    </section>
+
+    <!-- Sign in -->
+    <section class="container auth-wrap" id="view-login" hidden>
+      <form class="auth-card" id="login-form" novalidate>
+        <h1>Owner login</h1>
+        <p class="muted">Sign in to view upcoming appointments.</p>
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+        <p class="form-status" id="login-status" role="status"></p>
+        <button class="link-btn" type="button" id="forgot-btn">Forgot password?</button>
+      </form>
+    </section>
+
+    <!-- Set a new password (after clicking the reset link in the email) -->
+    <section class="container auth-wrap" id="view-reset" hidden>
+      <form class="auth-card" id="reset-form" novalidate>
+        <h1>Set a new password</h1>
+        <div class="field">
+          <label for="new-password">New password</label>
+          <input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Save password</button>
+        <p class="form-status" id="reset-status" role="status"></p>
+      </form>
+    </section>
+
+    <!-- Signed in, but not an owner -->
+    <section class="container auth-wrap" id="view-denied" hidden>
+      <div class="auth-card">
+        <h1>No access</h1>
+        <p>You're signed in as <strong id="denied-email"></strong>, but this account isn't set up as an owner.</p>
+        <p class="muted">Ask the site admin to add this account to the <code>owners</code> table.</p>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="container dash" id="view-dash" hidden>
+      <div class="dash-head">
+        <div>
+          <h1>Appointments</h1>
+          <p class="muted">Signed in as <span id="owner-email"></span></p>
+        </div>
+        <button class="btn btn-primary btn-sm" id="refresh-btn" type="button">Refresh</button>
+      </div>
+
+      <div class="stats" id="stats">
+        <div class="stat"><span class="stat-num" id="stat-today">–</span><span class="stat-label">Today</span></div>
+        <div class="stat"><span class="stat-num" id="stat-week">–</span><span class="stat-label">Next 7 days</span></div>
+        <div class="stat stat-accent"><span class="stat-num" id="stat-new">–</span><span class="stat-label">New, needs confirming</span></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="Which appointments">
+          <button role="tab" aria-selected="true" data-range="upcoming">Upcoming</button>
+          <button role="tab" aria-selected="false" data-range="past">Past</button>
+        </div>
+        <label class="toolbar-filter">
+          <span>Show</span>
+          <select id="status-filter">
+            <option value="active">New &amp; confirmed</option>
+            <option value="new">New only</option>
+            <option value="confirmed">Confirmed only</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="all">Everything</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="dash-message" id="dash-message" role="status"></p>
+      <div id="appt-list" class="appt-list"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/owner.js"></script>
+</body>
+</html>

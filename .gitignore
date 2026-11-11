@@ -1,0 +1,10 @@
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+# Vercel CLI
+.vercel
+# Local env files (never commit secret keys)
+.env
+.env.*
