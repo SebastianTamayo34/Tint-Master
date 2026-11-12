@@ -29,6 +29,53 @@ const db =
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") setOpen(false); });
 })();
 
+/* ---------- Gallery: slowly rotate photos ---------- */
+// Every few seconds one tile fades to a spare photo of the same shape,
+// and the photo it replaces becomes a spare. Pauses on hover, while the
+// tab is hidden or the gallery is off screen, and for reduced motion.
+(function galleryRotate() {
+  const grid = document.querySelector(".gallery");
+  const spares = document.querySelector(".gallery-spares");
+  if (!grid || !spares || !spares.children.length) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const tiles = [...grid.querySelectorAll(".gallery-item")];
+  const order = [0, 3, 1, 4, 2].filter((i) => i < tiles.length); // spread changes around
+  let step = 0;
+  let hovering = false;
+  let onScreen = false;
+
+  grid.addEventListener("mouseenter", () => { hovering = true; });
+  grid.addEventListener("mouseleave", () => { hovering = false; });
+
+  new IntersectionObserver(([entry]) => {
+    onScreen = entry.isIntersecting;
+    // Load the spare photos once the gallery is near, so they're ready to fade in.
+    if (onScreen) spares.querySelectorAll("img").forEach((img) => { img.loading = "eager"; });
+  }, { rootMargin: "200px" }).observe(grid);
+
+  const swap = (tile) => {
+    const current = tile.querySelector("img:not(.incoming)");
+    const shape = tile.classList.contains("tall") ? "tall" : "wide";
+    const next = spares.querySelector(`img[data-shape="${shape}"]`);
+    if (!current || !next || !next.complete) return;
+
+    next.classList.add("incoming");
+    tile.append(next);
+    next.getBoundingClientRect(); // apply opacity 0 first so the fade runs
+    next.classList.add("show");
+    next.addEventListener("transitionend", () => {
+      spares.append(current);
+      next.classList.remove("incoming", "show");
+    }, { once: true });
+  };
+
+  setInterval(() => {
+    if (hovering || !onScreen || document.hidden) return;
+    swap(tiles[order[step++ % order.length]]);
+  }, 4000);
+})();
+
 /* ---------- Shade preview ---------- */
 (function shadePicker() {
   const buttons = document.querySelectorAll(".shade-picker button");

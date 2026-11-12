@@ -51,7 +51,7 @@
     <section class="hero">
       <div class="container hero-inner">
         <p class="eyebrow">Built for your ride. Made for your comfort.</p>
-        <h1>Premium Window Tint.<br><span class="accent">Done Right.</span></h1>
+        <h1>Premium Window Tint.<br><span class="accent">Done Right.<br>20 Years of Experience</span></h1>
         <p class="hero-lead">
           Less heat. More privacy. A sharper look. Professional tinting for cars and trucks,
           semis, buses and RVs, commercial buildings, and headlights and taillights.
@@ -197,18 +197,30 @@
           <p>A look at the finish.</p>
         </div>
 
-        <!-- TODO: Replace these stock photos with real Tint Master jobs
-             (cars, a storefront, a semi/bus, and a set of tinted lights). -->
+        <!-- Real Tint Master jobs. Five tiles show at once ("large" spans 2x2,
+             "tall" spans 2 rows). js/main.js slowly fades spare photos into the
+             tiles: data-shape="tall" photos go in the tall tile, "wide" in the rest.
+             To add a photo, put it in .gallery-spares with the right data-shape. -->
         <div class="gallery">
           <figure class="gallery-item large">
-            <img src="images/gallery-sunset-coupe.jpg" alt="Black sports coupe with tinted windows at sunset" loading="lazy" width="1200" height="682">
+            <img src="images/gallery-gladiator-blue-side.jpg" data-shape="wide" alt="Lifted blue Jeep Gladiator with tinted side windows" loading="lazy" width="1600" height="1200">
+          </figure>
+          <figure class="gallery-item tall">
+            <img src="images/gallery-huracan-front.jpg" data-shape="tall" alt="Silver Lamborghini Huracán with a tinted windshield" loading="lazy" width="1200" height="1600">
           </figure>
           <figure class="gallery-item">
-            <img src="images/gallery-black-coupe.jpg" alt="Black coupe with dark tinted windows" loading="lazy" width="1200" height="800">
+            <img src="images/gallery-gladiator-mojave.webp" data-shape="wide" alt="Gray Jeep Gladiator Mojave with tinted windows" loading="lazy" width="1280" height="721">
           </figure>
           <figure class="gallery-item">
-            <img src="images/hero-muscle-car.jpg" alt="Black muscle car with tinted windows" loading="lazy" width="1200" height="800">
+            <img src="images/gallery-silverado.webp" data-shape="wide" alt="Gray Chevrolet Silverado Z71 with tinted windows" loading="lazy" width="1280" height="721">
           </figure>
+          <figure class="gallery-item">
+            <img src="images/gallery-challenger-red.webp" data-shape="wide" alt="Red Dodge Challenger Scat Pack with a dark tinted rear window" loading="lazy" width="1280" height="691">
+          </figure>
+        </div>
+        <div class="gallery-spares" hidden>
+          <img src="images/gallery-gladiator-blue-front.jpg" data-shape="tall" alt="Front of a blue Jeep Gladiator with a tinted windshield" loading="lazy" width="1512" height="1600">
+          <img src="images/gallery-challenger-blue.jpg" data-shape="wide" alt="Blue Dodge Challenger with tinted side windows next to the Tint Master van" loading="lazy" width="1600" height="1200">
         </div>
       </div>
     </section>

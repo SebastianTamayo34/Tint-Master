@@ -57,7 +57,7 @@ js/main.js            Mobile nav, shade picker, booking form logic + insert
 js/owner.js           Auth, owner check, appointment list, status updates
 supabase/schema.sql   Tables, constraints, RLS policies; safe to re-run
 vercel.json           Hosting config
-images/               Placeholder stock photos (to be replaced with real work)
+images/               Gallery photos of real jobs (gallery-*); hero + shade-picker images are still stock
 ```
 
 ## Rules and conventions
@@ -105,6 +105,6 @@ Open `index.html` directly, or for sign-in to work reliably, serve the folder (`
 
 ## Open items / next steps
 
-- Replace the stock photos with real ones.
+- Replace the remaining stock photos (`hero-muscle-car.jpg` for the hero and link previews, `shade-view.jpg` for the shade picker) with real ones.
 - Notify the owner of new bookings by email or SMS, using a Supabase webhook or Edge Function.
 - Add a CAPTCHA (e.g. Cloudflare Turnstile) if spam submissions appear.
