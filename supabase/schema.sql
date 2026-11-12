@@ -91,6 +91,31 @@ $$;
 revoke all on function public.is_owner() from public;
 grant execute on function public.is_owner() to anon, authenticated;
 
+-- Start hours already confirmed on a given day. The public can't read
+-- appointments, so the booking form calls this to grey out taken slots.
+-- It only reveals that a slot is busy, never who booked it.
+create or replace function public.taken_slots(p_date date)
+returns setof smallint
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select distinct start_hour from public.appointments
+  where appt_date = p_date and status = 'confirmed';
+$$;
+
+revoke all on function public.taken_slots(date) from public;
+grant execute on function public.taken_slots(date) to anon, authenticated;
+
+-- At most one confirmed appointment per date + time slot. Any number of
+-- 'new' requests can wait on the same slot until the owner picks one.
+-- If this fails to create, two confirmed bookings already share a slot:
+-- change one of them, then run this file again.
+create unique index if not exists appointments_one_confirmed_per_slot
+  on public.appointments (appt_date, start_hour)
+  where status = 'confirmed';
+
 
 -- ---------- Security rules ----------
 alter table public.appointments enable row level security;
@@ -103,11 +128,19 @@ drop policy if exists "owners can update appointments"  on public.appointments;
 drop policy if exists "owners can delete appointments"  on public.appointments;
 
 -- Anyone (the public booking form) may ADD a request, but only as status 'new',
--- and only for a date from today onward.
+-- only for a date from tomorrow up to 90 days out (no same-day bookings),
+-- and only for a time slot that isn't already confirmed for someone else.
+-- "Today" is the shop's local date. The server runs on UTC, so current_date
+-- would be tomorrow in North Chicago every evening after 6-7pm.
 create policy "public can request appointments"
   on public.appointments for insert
   to anon, authenticated
-  with check (status = 'new' and appt_date >= current_date);
+  with check (
+    status = 'new'
+    and appt_date >  (now() at time zone 'America/Chicago')::date
+    and appt_date <= (now() at time zone 'America/Chicago')::date + 90
+    and start_hour not in (select public.taken_slots(appt_date))
+  );
 
 -- Only owners may see, change, or delete appointments.
 create policy "owners can view appointments"

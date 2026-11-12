@@ -105,6 +105,6 @@ Then open the address it prints (for example http://localhost:3000) and `/owner.
 ## Notes and next steps
 
 - **Notifications:** new requests show up on the dashboard, which refreshes every 2 minutes, but nobody is emailed or texted yet. That can be added later with a Supabase Database Webhook or Edge Function connected to an email or SMS service.
-- **Double bookings:** the form doesn't yet check whether a time slot is already taken. The owner confirms or reschedules each request.
+- **Double bookings:** once the owner confirms an appointment, that day and time shows as "(booked)" on the form and the database rejects new requests for it. Only one appointment can be confirmed per slot. Unconfirmed requests can still share a slot until the owner picks one.
 - **Spam:** the form is public. If junk submissions show up, add a CAPTCHA (e.g. Cloudflare Turnstile).
 - **Fallback:** if `js/config.js` is left empty, the booking form opens the customer's email app addressed to `BOOKING_EMAIL` instead.

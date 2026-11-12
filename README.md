@@ -75,10 +75,11 @@ Keep the two in sync whenever either one changes:
 
 - no Sundays
 - on Saturdays, only slots that start before 3pm
-- dates from tomorrow up to 90 days out
+- dates from tomorrow up to 90 days out (no same-day; "today" is Chicago time in the database)
 - `start_hour` must be 9, 11, 13 or 15
 - mobile bookings must include an address
 - commercial building tint must be mobile service (the form locks the shop option)
+- no booking for a date + slot that's already **confirmed** (form greys it out via the `taken_slots()` RPC; the insert policy rejects it; a unique index allows only one confirmed appointment per slot)
 - each booking needs either a service or at least one add-on
 
 ### Style
@@ -106,5 +107,4 @@ Open `index.html` directly, or for sign-in to work reliably, serve the folder (`
 
 - Replace the stock photos with real ones.
 - Notify the owner of new bookings by email or SMS, using a Supabase webhook or Edge Function.
-- Prevent double-booking of the same slot.
 - Add a CAPTCHA (e.g. Cloudflare Turnstile) if spam submissions appear.

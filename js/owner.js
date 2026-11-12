@@ -239,7 +239,10 @@
     if (error) {
       console.error(error);
       select.value = previous;
-      message.textContent = "Couldn't update that appointment. Please try again.";
+      // 23505 = unique index: another appointment is already confirmed for this slot.
+      message.textContent = error.code === "23505"
+        ? "Another appointment is already confirmed for that day and time. Change or cancel it first."
+        : "Couldn't update that appointment. Please try again.";
       return;
     }
     r.status = next;

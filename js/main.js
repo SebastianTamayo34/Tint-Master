@@ -127,7 +127,7 @@ const db =
 
   /* ----- Date rules (browser's built-in date picker) ----- */
   const dateHint = document.getElementById("date-hint");
-  const HINT_TEXT = dateHint.textContent; // "Closed Sundays · Sat until 3pm"
+  const HINT_TEXT = dateHint.textContent; // "No same-day · Closed Sundays · Sat until 3pm"
   const pad = (n) => String(n).padStart(2, "0");
   const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const dayOf = (iso) => {
@@ -141,26 +141,58 @@ const db =
   dateInput.min = toISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
   dateInput.max = toISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 90));
 
+  // ISO dates compare correctly as strings, so a typed-in date
+  // outside min/max gets a clear message instead of a generic one.
+  const dateError = () => {
+    const v = dateInput.value;
+    if (!v) return "";
+    if (v < dateInput.min) return "We don't do same-day appointments. Please pick tomorrow or later.";
+    if (v > dateInput.max) return "We book up to 90 days ahead. Please pick an earlier date.";
+    if (dayOf(v) === 0) return "We're closed on Sundays. Please pick another day.";
+    return "";
+  };
+
+  let takenSlots = new Set(); // start hours already confirmed on the picked date
+  let takenFor = null;        // the date takenSlots belongs to
+
   // The built-in calendar can't grey out weekdays, so a Sunday is
-  // rejected as soon as it's picked, and Saturday hides slots from 3pm on.
+  // rejected as soon as it's picked, Saturday hides slots from 3pm on,
+  // and slots already confirmed for someone else show as "(booked)".
   const checkDate = () => {
     const day = dayOf(dateInput.value);
-    const sunday = day === 0;
-    dateInput.setCustomValidity(sunday ? "We're closed on Sundays. Please pick another day." : "");
-    dateHint.textContent = sunday ? "We're closed on Sundays. Please pick another day." : HINT_TEXT;
-    dateHint.classList.toggle("err", sunday);
-    dateInput.closest(".field").classList.toggle("invalid", sunday);
+    const err = dateError();
+    dateInput.setCustomValidity(err);
+    dateHint.textContent = err || HINT_TEXT;
+    dateHint.classList.toggle("err", !!err);
+    dateInput.closest(".field").classList.toggle("invalid", !!err);
 
     [...timeSelect.options].forEach((opt) => {
       if (!opt.dataset.start) return;
       const closed = day === 6 && Number(opt.dataset.start) >= SATURDAY_CLOSE;
-      opt.disabled = closed;
       opt.hidden = closed;
-      if (closed && opt.selected) timeSelect.value = "";
+      opt.disabled = closed || takenSlots.has(Number(opt.dataset.start));
+      // Pin the value to the original text so adding "(booked)" never changes what's saved.
+      if (!opt.dataset.label) { opt.dataset.label = opt.textContent; opt.value = opt.textContent; }
+      opt.textContent = opt.dataset.label + (opt.disabled && !closed ? " (booked)" : "");
+      if (opt.disabled && opt.selected) timeSelect.value = "";
     });
   };
-  dateInput.addEventListener("change", checkDate);
-  dateInput.addEventListener("input", checkDate);
+
+  // Slots already confirmed for someone else can't be booked again.
+  // The database enforces this too; this just greys them out ahead of time.
+  const loadTakenSlots = async () => {
+    const date = dateInput.value;
+    if (takenFor !== date) { takenSlots = new Set(); takenFor = date; }
+    if (!db || !date || dateError()) { checkDate(); return; }
+    checkDate();
+    const { data, error } = await db.rpc("taken_slots", { p_date: date });
+    if (dateInput.value !== date) return; // the date changed while waiting
+    if (error) { console.error("Couldn't load booked slots:", error); return; }
+    takenSlots = new Set(data.map(Number));
+    checkDate();
+  };
+  dateInput.addEventListener("change", loadTakenSlots);
+  dateInput.addEventListener("input", loadTakenSlots);
 
   const setStatus = (msg, type) => {
     status.textContent = msg;
@@ -182,8 +214,8 @@ const db =
     });
     if (firstBad) {
       setStatus(
-        dayOf(dateInput.value) === 0
-          ? "We're closed on Sundays. Please pick another day."
+        dateError()
+          ? dateError()
           : isMobile() && !mobileInput.value.trim()
             ? "Please enter the address where you'd like the mobile service."
             : "Please fill in your name, phone, a valid email, a service or add-on, and a date and time.",
@@ -231,10 +263,19 @@ const db =
 
       if (error) {
         console.error("Booking failed:", error);
+        // The slot may have been confirmed for someone else since the page loaded.
+        await loadTakenSlots();
+        if (takenSlots.has(row.start_hour)) {
+          timeSelect.closest(".field").classList.add("invalid");
+          timeSelect.focus();
+          setStatus("Sorry, that time was just booked. Please choose another time.", "err");
+          return;
+        }
         setStatus("Sorry, something went wrong. Please call us at (773) 289-8367.", "err");
         return;
       }
       form.reset();
+      takenSlots = new Set();
       syncServiceRequired();
       syncLocation();
       checkDate();
