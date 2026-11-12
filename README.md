@@ -104,7 +104,7 @@ Open `index.html` directly, or for sign-in to work reliably, serve the folder (`
 
 ## Open items / next steps
 
-- Replace the placeholder `BOOKING_EMAIL` (`hello@tintmaster.example`) and the stock photos with real ones.
+- Replace the stock photos with real ones.
 - Notify the owner of new bookings by email or SMS, using a Supabase webhook or Edge Function.
 - Prevent double-booking of the same slot.
 - Add a CAPTCHA (e.g. Cloudflare Turnstile) if spam submissions appear.

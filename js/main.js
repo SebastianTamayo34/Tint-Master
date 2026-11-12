@@ -4,7 +4,7 @@
 
 // Settings come from js/config.js
 const CONFIG = window.TINT_CONFIG || {};
-const BOOKING_EMAIL = CONFIG.BOOKING_EMAIL || "hello@tintmaster.example";
+const BOOKING_EMAIL = CONFIG.BOOKING_EMAIL || "tintmasterpro@gmail.com";
 
 // Supabase connection (null until js/config.js is filled in)
 const db =

@@ -16,5 +16,5 @@ window.TINT_CONFIG = {
   // Used only if Supabase isn't set up yet: the booking form falls back to
   // opening the customer's email app addressed here.
   // TODO: change to the real shop email before launch.
-  BOOKING_EMAIL: "hello@tintmaster.example",
+  BOOKING_EMAIL: "tintmasterpro@gmail.com",
 };
