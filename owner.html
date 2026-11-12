@@ -93,11 +93,12 @@
       </div>
 
       <div class="toolbar">
-        <div class="tabs" role="tablist" aria-label="Which appointments">
-          <button role="tab" aria-selected="true" data-range="upcoming">Upcoming</button>
-          <button role="tab" aria-selected="false" data-range="past">Past</button>
-        </div>
-        <label class="toolbar-filter">
+        <div class="toolbar-group">
+          <div class="tabs" role="tablist" aria-label="View">
+            <button role="tab" aria-selected="true" data-mode="calendar">Calendar</button>
+            <button role="tab" aria-selected="false" data-mode="list">List</button>
+          </div>        </div>
+        <label class="toolbar-filter" id="filter-wrap">
           <span>Show</span>
           <select id="status-filter">
             <option value="active">New &amp; confirmed</option>
@@ -105,13 +106,33 @@
             <option value="confirmed">Confirmed only</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
-            <option value="all">Everything</option>
+            <option value="done">Completed &amp; cancelled</option>
           </select>
         </label>
       </div>
 
       <p class="dash-message" id="dash-message" role="status"></p>
       <div id="appt-list" class="appt-list"></div>
+
+      <!-- Calendar view (the default): appointments by month, using the "Show" filter -->
+      <div id="cal" class="cal" hidden>
+        <div class="cal-head">
+          <div class="cal-nav">
+            <button class="cal-arrow" id="cal-prev" type="button" aria-label="Previous month">‹</button>
+            <h2 id="cal-title" aria-live="polite"></h2>
+            <button class="cal-arrow" id="cal-next" type="button" aria-label="Next month">›</button>
+            <button class="btn btn-ghost btn-sm cal-today-btn" id="cal-today" type="button">Today</button>
+          </div>
+          <div class="cal-legend">
+            <span data-status="new"><i class="cal-dot status-new"></i>New</span>
+            <span data-status="confirmed"><i class="cal-dot status-confirmed"></i>Confirmed</span>
+            <span data-status="completed"><i class="cal-dot status-completed"></i>Completed</span>
+            <span data-status="cancelled"><i class="cal-dot status-cancelled"></i>Cancelled</span>
+          </div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-day" id="cal-day"></div>
+      </div>
     </section>
   </main>
 

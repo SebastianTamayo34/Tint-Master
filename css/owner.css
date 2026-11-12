@@ -177,6 +177,118 @@ code {
   border-radius: 6px;
 }
 
+.toolbar-group { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- Calendar view ---------- */
+.cal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.cal-nav { display: flex; align-items: center; gap: 6px; }
+.cal-nav h2 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0;
+  margin: 0 6px;
+  min-width: 9.5em;
+  text-align: center;
+}
+.cal-arrow {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+}
+.cal-arrow:hover { border-color: var(--sky-deep); }
+.cal-nav .cal-today-btn { margin-left: 6px; color: var(--ink); border-color: var(--line); background: var(--white); }
+.cal-nav .cal-today-btn:hover { border-color: var(--sky-deep); background: var(--white); }
+.cal-legend { display: flex; gap: 14px; font-size: .85rem; color: var(--gray); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cal-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.cal-dot.status-new { background: var(--orange); }
+.cal-dot.status-confirmed { background: #1e8e3e; }
+.cal-dot.status-completed { background: var(--sky-deep); }
+.cal-dot.status-cancelled { background: #9aa3ad; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.cal-weekday {
+  background: #f4f6f8;
+  padding: 8px;
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--gray);
+  text-align: center;
+}
+.cal-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 112px;
+  min-width: 0;
+  padding: 6px;
+  border: 0;
+  background: var(--white);
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.cal-cell:hover { background: var(--sky-soft); }
+.cal-cell:focus-visible { outline: 2px solid var(--sky-deep); outline-offset: -2px; }
+.cal-cell.other-month { background: #fafbfc; }
+.cal-cell.other-month .cal-date { color: #b4bbc3; }
+.cal-cell.closed { background: repeating-linear-gradient(135deg, #fafbfc 0 6px, #f1f3f5 6px 12px); }
+.cal-cell.past .cal-date { color: #9aa3ad; }
+.cal-cell.selected { box-shadow: inset 0 0 0 2px var(--ink); }
+.cal-date { font-weight: 700; font-size: .88rem; }
+.cal-cell.today .cal-date {
+  background: var(--orange);
+  color: var(--white);
+  border-radius: 999px;
+  min-width: 1.8em;
+  text-align: center;
+  align-self: flex-start;
+}
+.cal-chips { display: grid; gap: 3px; }
+.cal-chip {
+  font-size: .74rem;
+  line-height: 1.25;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border-left: 3px solid;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-chip.status-new       { background: #fff0e6; border-color: var(--orange); color: #8a3608; }
+.cal-chip.status-confirmed { background: #e6f4ea; border-color: #1e8e3e; color: #0d5c27; }
+.cal-chip.status-completed { background: var(--sky-soft); border-color: var(--sky-deep); color: #0f5f8a; }
+.cal-chip.status-cancelled { background: #eef0f2; border-color: #9aa3ad; color: #5b6470; text-decoration: line-through; }
+
+.cal-day { min-height: 3em; }
+.cal-hint { margin: 0; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .appt { grid-template-columns: 1fr; gap: 10px; }
@@ -193,4 +305,16 @@ code {
   .appt-meta dt { font-size: .78rem; }
   .auth-card { padding: 28px 20px; }
   .dash-head { align-items: flex-start; }
+
+  /* Calendar on phones: chips shrink to colored dots; tap a day for details. */
+  .cal-cell { min-height: 58px; padding: 4px 3px; align-items: center; }
+  .cal-weekday { padding: 6px 0; font-size: .68rem; letter-spacing: 0; }
+  .cal-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; }
+  .cal-chip { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; font-size: 0; }
+  .cal-chip.status-new       { background: var(--orange); }
+  .cal-chip.status-confirmed { background: #1e8e3e; }
+  .cal-chip.status-completed { background: var(--sky-deep); }
+  .cal-chip.status-cancelled { background: #9aa3ad; }
+  .cal-nav h2 { min-width: 0; font-size: 1.05rem; }
+  .cal-cell.today .cal-date { align-self: center; }
 }

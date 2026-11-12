@@ -36,7 +36,7 @@ A fast, standalone website with online appointment booking and a private owner d
    - vehicle or building details
    - a date, plus one of four 2-hour time slots (9–11, 11–1, 1–3, 3–5)
 2. **Booking storage**: each submission is saved to Supabase with status `new`.
-3. **Owner dashboard** (`owner.html`, served at `/owner`): an email and password login, then today and next-7-days stats and an Upcoming/Past list grouped by day. Each appointment's status can be set to New, Confirmed, Completed or Cancelled.
+3. **Owner dashboard** (`owner.html`, served at `/owner`): an email and password login, then a month Calendar (the default view; click a day for its details) and an upcoming appointments List with today and next-7-days stats. A "Show" filter (new & confirmed by default, or completed & cancelled, etc.) applies to both. Each appointment's status can be set to New, Confirmed, Completed or Cancelled.
 
 ## Tech stack
 
