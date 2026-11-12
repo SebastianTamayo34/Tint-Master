@@ -103,8 +103,16 @@ const db =
   const mobileInput = document.getElementById("mobile-address");
   const isMobile = () => form.querySelector('input[name="location"]:checked')?.value === "mobile";
 
+  // A building can't come to the shop, so commercial tint locks the
+  // booking to mobile service until a different service is chosen.
+  const shopRadio = form.querySelector('input[name="location"][value="shop"]');
+  const mobileRadio = form.querySelector('input[name="location"][value="mobile"]');
+
   // Only show (and require) the address box when mobile service is picked.
   const syncLocation = () => {
+    const commercial = serviceSelect.value === "Commercial building tint";
+    shopRadio.disabled = commercial;
+    if (commercial) mobileRadio.checked = true;
     const mobile = isMobile();
     mobileField.hidden = !mobile;
     mobileInput.required = mobile;
@@ -114,6 +122,7 @@ const db =
     syncLocation();
     if (isMobile()) mobileInput.focus();
   }));
+  serviceSelect.addEventListener("change", syncLocation);
   syncLocation();
 
   /* ----- Date rules (browser's built-in date picker) ----- */

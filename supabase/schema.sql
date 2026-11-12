@@ -53,6 +53,16 @@ create table if not exists public.appointments (
     check (service is not null or cardinality(addons) > 0)
 );
 
+-- Rules added after the table was first created. "create table if not exists"
+-- skips existing tables, so these are dropped and re-added to stay re-runnable.
+-- "not valid" skips checking old rows; every new or edited row is still checked.
+alter table public.appointments
+  drop constraint if exists commercial_is_mobile;
+alter table public.appointments
+  add constraint commercial_is_mobile
+  check (service is distinct from 'Commercial building tint' or location = 'mobile')
+  not valid;
+
 create index if not exists appointments_date_idx
   on public.appointments (appt_date, start_hour);
 

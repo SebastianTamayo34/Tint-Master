@@ -78,6 +78,7 @@ Keep the two in sync whenever either one changes:
 - dates from tomorrow up to 90 days out
 - `start_hour` must be 9, 11, 13 or 15
 - mobile bookings must include an address
+- commercial building tint must be mobile service (the form locks the shop option)
 - each booking needs either a service or at least one add-on
 
 ### Style

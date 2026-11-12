@@ -581,6 +581,8 @@ p { margin: 0 0 1em; }
 }
 .location-option:hover { border-color: var(--sky-deep); }
 .location-option:has(input:checked) { border-color: var(--orange); background: #fff6f0; }
+.field .location-option:has(input:disabled) { opacity: .5; cursor: not-allowed; border-color: var(--line); }
+.field .location-option:has(input:disabled) input { cursor: not-allowed; }
 .field .location-option input {
   width: 18px;
   height: 18px;
