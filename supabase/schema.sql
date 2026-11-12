@@ -59,7 +59,7 @@ create index if not exists appointments_date_idx
 
 -- ---------- Owners ----------
 -- A row here = that login account is an owner.
--- Add one after creating the owner's login (see README.md, step 3).
+-- Add one after creating the owner's login (see SETUP.md, step 3).
 create table if not exists public.owners (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   created_at timestamptz not null default now()

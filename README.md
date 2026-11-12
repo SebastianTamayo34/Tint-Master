@@ -1,110 +1,109 @@
-# Tint Master Inc — website
+# CLAUDE.md
 
-A plain HTML/CSS/JS site with no build step. It is hosted on **Vercel** from a **GitHub** repo, and it uses **Supabase** for the appointment database and the owner login.
+This file gives Claude Code the context it needs to work on this project. `CLAUDE.md` imports it, so edit this file. Setup steps are in [SETUP.md](SETUP.md).
+
+## The business
+
+**Tint Master Inc** is a window tint company based at 1703 Marion Graves Court, North Chicago, IL 60064. Its phone number is (773) 289-8367. It offers:
+
+- **Automotive window tint** for cars, trucks and SUVs
+- **Commercial building tint** for storefronts and offices
+- **Large vehicle and fleet tint** for buses, RVs and work trucks
+- **Headlight and taillight tint**
+- **Front windshield strips**
+
+Customers can bring a vehicle **to the shop** or book **mobile service** at their own address. The shop sells two films, **CXP™ Nano-Hybrid Carbon** and **Ceramic**, in shades from 5% (darkest/limo) to 50% (lightest).
+
+Hours: Monday to Saturday. Saturday closes at 3pm, and the shop is closed on Sundays.
+
+## The problem
+
+The business started with a Framer template site that couldn't do what the shop needs:
+
+- Customers could only "Get a Quote". There was no way to request a specific day and time, choose shop or mobile service, or say which film and shade they wanted.
+- Booking requests didn't go anywhere the owner could manage. There was no single list of upcoming jobs and no way to track each one from request to confirmed to done.
+- The site was locked into Framer's export, which made it hard to edit or host somewhere else.
+
+## What we're building
+
+A fast, standalone website with online appointment booking and a private owner dashboard.
+
+1. **Public site** (`index.html`): services, films, an interactive shade picker, a gallery, contact details with a map, and a **Schedule Appointment** form. The form collects:
+   - name, phone and email
+   - shop or mobile service (mobile asks for an address)
+   - service, type of tint and tint percentage
+   - add-ons: headlight/taillight tint and windshield strip
+   - vehicle or building details
+   - a date, plus one of four 2-hour time slots (9–11, 11–1, 1–3, 3–5)
+2. **Booking storage**: each submission is saved to Supabase with status `new`.
+3. **Owner dashboard** (`owner.html`, served at `/owner`): an email and password login, then today and next-7-days stats and an Upcoming/Past list grouped by day. Each appointment's status can be set to New, Confirmed, Completed or Cancelled.
+
+## Tech stack
+
+- **Plain HTML, CSS and vanilla JS.** There's no framework, no bundler and no build step, and none should be added without asking.
+- **Supabase** provides the Postgres database, Row Level Security and Auth. The client is `@supabase/supabase-js@2.49.4`, loaded as a UMD script from jsDelivr.
+- **Vercel** hosts the static files (`vercel.json`: clean URLs, security headers, noindex on `/owner`).
+- **GitHub** holds the source. Every push to `main` redeploys on Vercel.
+
+## Project layout
 
 ```
-index.html            Public website + appointment form
-owner.html            Owner login + appointments dashboard
-css/styles.css        Site styles (colors/fonts at the top)
-css/owner.css         Dashboard styles
-js/config.js          Supabase URL + public key (fill these in)
-js/main.js            Website scripts (menu, shade preview, booking form)
-js/owner.js           Dashboard scripts (sign in, list, status updates)
-supabase/schema.sql   Database tables + security rules (run once in Supabase)
-vercel.json           Vercel settings (clean URLs, security headers)
+index.html            Public site + booking form
+owner.html            Owner login + dashboard
+css/styles.css        Site styles; color/font tokens are at the top
+css/owner.css         Dashboard styles (builds on styles.css)
+js/config.js          Supabase URL + publishable key, fallback booking email
+js/main.js            Mobile nav, shade picker, booking form logic + insert
+js/owner.js           Auth, owner check, appointment list, status updates
+supabase/schema.sql   Tables, constraints, RLS policies; safe to re-run
+vercel.json           Hosting config
+images/               Placeholder stock photos (to be replaced with real work)
 ```
 
-## How it works
+## Rules and conventions
 
-- A customer submits the booking form, and the request is saved in the Supabase `appointments` table with status **New**.
-- The owner signs in at `/owner` and sees upcoming appointments grouped by day. Each one can be marked **Confirmed**, **Completed** or **Cancelled**.
-- The database's security rules mean the public can **add** a request but can never **read** any. Only accounts listed in the `owners` table can view or change appointments.
+### Security (must not break)
 
----
+- `js/config.js` holds only the **public** values: the Project URL and the **publishable/anon** key. **Never** add the `service_role`/`sb_secret_` key to any file.
+- Security lives in the database, not the front end. The public (`anon`) role can only **INSERT** appointments with `status = 'new'` and can never read them. Only users listed in the `owners` table can SELECT, UPDATE or DELETE them, which is checked with `public.is_owner()`.
+- Public sign-ups are turned off in Supabase. Owner accounts are created by hand and added to `owners`.
+- In the dashboard, render customer-entered text only through the `el()` helper in `owner.js`, which uses textContent. Never use `innerHTML` with appointment data.
 
-## Setup
+### Booking rules (enforced in both `main.js` and `schema.sql`)
 
-### 1. Create the Supabase project
+Keep the two in sync whenever either one changes:
 
-1. Sign up at [supabase.com](https://supabase.com) and create a new project. Save the database password somewhere safe.
-2. Open **SQL Editor → New query**, paste in the whole of `supabase/schema.sql`, and click **Run**. It should finish with "Success. No rows returned."
+- no Sundays
+- on Saturdays, only slots that start before 3pm
+- dates from tomorrow up to 90 days out
+- `start_hour` must be 9, 11, 13 or 15
+- mobile bookings must include an address
+- each booking needs either a service or at least one add-on
 
-### 2. Lock down sign-ups
+### Style
 
-Only the owner should have an account, so turn off public sign-ups:
+- Brand colors:
+  - ink `#0b0e11`
+  - orange `#ff6b18`
+  - sky `#bce8fa`
+  - sky-deep `#1a84bd`
+  - sky-soft `#e8f5fb`
+- Fonts: **Racing Sans One** for headings, **Inter** for body text.
+- Use the CSS custom properties in `styles.css` instead of hard-coding colors.
+- Pages must work at phone width (about 390px) with no horizontal scroll.
+- Use the browser's native date picker. The owner chose it over a custom calendar.
 
-- **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up". Keep the **Email** provider enabled.
+### Schema changes
 
-### 3. Create the owner login
+Edit `supabase/schema.sql` so it stays **idempotent** and can be safely re-run (`if not exists`, `drop policy if exists`, `create or replace`). Then run the change in the Supabase SQL Editor.
 
-1. **Authentication → Users → Add user → Create new user**. Enter the owner's email and a strong password, and tick **Auto Confirm User**.
-2. Mark that account as an owner. In the **SQL Editor**, run the following with the real email:
+## Running locally
 
-   ```sql
-   insert into public.owners (user_id)
-   select id from auth.users where email = 'owner@example.com';
-   ```
+Open `index.html` directly, or for sign-in to work reliably, serve the folder (`npx serve .`) and visit `/owner.html`. Setup and deployment steps are in `SETUP.md`.
 
-   For a second owner, create another user and run the same command with their email.
+## Open items / next steps
 
-### 4. Connect the website
-
-Open **Project Settings → API Keys** (on older projects this is called **API**) and copy:
-
-- the **Project URL**
-- the **anon public** key, or the newer **publishable** key
-
-Paste them into `js/config.js`:
-
-```js
-SUPABASE_URL: "https://YOUR-PROJECT.supabase.co",
-SUPABASE_ANON_KEY: "eyJhbGciOi...",
-```
-
-> These two values are meant to be public and are safe to commit to GitHub.
-> **Never** put the `service_role` / **secret** key in any file in this project.
-
-### 5. Put it on GitHub
-
-```bash
-cd tint-master
-git init
-git add .
-git commit -m "Tint Master website"
-```
-
-Then create an empty repo on GitHub and follow its "push an existing repository" commands, or use GitHub Desktop.
-
-### 6. Deploy on Vercel
-
-1. In [vercel.com](https://vercel.com), choose **Add New → Project** and import the GitHub repo.
-2. Framework preset: **Other**. Leave the build command and output directory empty.
-3. Click **Deploy**. Every later push to GitHub redeploys the site automatically.
-
-### 7. Point password-reset emails at the live site
-
-Back in Supabase, under **Authentication → URL Configuration**:
-
-- **Site URL**: your live address, e.g. `https://tintmaster.vercel.app`
-- **Redirect URLs**: add `https://tintmaster.vercel.app/owner` (and your custom domain later)
-
-This makes "Forgot password?" on the owner page send a link that comes back to the dashboard.
-
----
-
-## Testing locally
-
-The pages work when opened straight from the folder, but sign-in works best through a local server:
-
-```bash
-npx serve .
-```
-
-Then open the address it prints (for example http://localhost:3000) and `/owner.html`.
-
-## Notes and next steps
-
-- **Notifications:** new requests show up on the dashboard, which refreshes every 2 minutes, but nobody is emailed or texted yet. That can be added later with a Supabase Database Webhook or Edge Function connected to an email or SMS service.
-- **Double bookings:** the form doesn't yet check whether a time slot is already taken. The owner confirms or reschedules each request.
-- **Spam:** the form is public. If junk submissions show up, add a CAPTCHA (e.g. Cloudflare Turnstile).
-- **Fallback:** if `js/config.js` is left empty, the booking form opens the customer's email app addressed to `BOOKING_EMAIL` instead.
+- Replace the placeholder `BOOKING_EMAIL` (`hello@tintmaster.example`) and the stock photos with real ones.
+- Notify the owner of new bookings by email or SMS, using a Supabase webhook or Edge Function.
+- Prevent double-booking of the same slot.
+- Add a CAPTCHA (e.g. Cloudflare Turnstile) if spam submissions appear.
