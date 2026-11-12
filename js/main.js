@@ -147,7 +147,21 @@ const db =
   const SHOP_ADDRESS = "1703 Marion Graves Court, North Chicago, IL 60064";
   const locationRadios = form.querySelectorAll('input[name="location"]');
   const mobileField = document.getElementById("mobile-address-field");
-  const mobileInput = document.getElementById("mobile-address");
+  // Address parts for mobile service; all required except apt/suite.
+  const addr = {
+    street: document.getElementById("addr-street"),
+    unit: document.getElementById("addr-unit"),
+    city: document.getElementById("addr-city"),
+    state: document.getElementById("addr-state"),
+    zip: document.getElementById("addr-zip"),
+  };
+  const addrRequired = [addr.street, addr.city, addr.state, addr.zip];
+  // e.g. "123 Main St, Apt 4, North Chicago, IL 60064"
+  const fullAddress = () => {
+    const v = (k) => addr[k].value.trim();
+    return [v("street"), v("unit"), v("city"), `${v("state").toUpperCase()} ${v("zip")}`]
+      .filter(Boolean).join(", ");
+  };
   const isMobile = () => form.querySelector('input[name="location"]:checked')?.value === "mobile";
 
   // A building can't come to the shop, so commercial tint locks the
@@ -162,12 +176,12 @@ const db =
     if (commercial) mobileRadio.checked = true;
     const mobile = isMobile();
     mobileField.hidden = !mobile;
-    mobileInput.required = mobile;
-    if (!mobile) mobileField.classList.remove("invalid");
+    addrRequired.forEach((input) => { input.required = mobile; });
+    if (!mobile) mobileField.querySelectorAll(".field").forEach((f) => f.classList.remove("invalid"));
   };
   locationRadios.forEach((r) => r.addEventListener("change", () => {
     syncLocation();
-    if (isMobile()) mobileInput.focus();
+    if (isMobile()) addr.street.focus();
   }));
   serviceSelect.addEventListener("change", syncLocation);
   syncLocation();
@@ -263,8 +277,8 @@ const db =
       setStatus(
         dateError()
           ? dateError()
-          : isMobile() && !mobileInput.value.trim()
-            ? "Please enter the address where you'd like the mobile service."
+          : isMobile() && addrRequired.includes(firstBad)
+            ? "Please enter the full address for the mobile service: street, city, state and a 5-digit ZIP code."
             : "Please fill in your name, phone, a valid email, a service or add-on, and a date and time.",
         "err"
       );
@@ -277,7 +291,7 @@ const db =
     const addonList = fd.getAll("addons");
     data.addons = addonList.join(", "); // keep every checked box, not just the last
     data.location = isMobile()
-      ? `Mobile service at ${data.mobile_address.trim()}`
+      ? `Mobile service at ${fullAddress()}`
       : `At the shop (${SHOP_ADDRESS})`;
     const jobs = [data.service, data.addons].filter(Boolean).join(" + ");
 
@@ -290,7 +304,7 @@ const db =
         phone: data.phone.trim(),
         email: data.email.trim(),
         location: isMobile() ? "mobile" : "shop",
-        mobile_address: isMobile() ? clean(data.mobile_address) : null,
+        mobile_address: isMobile() ? fullAddress() : null,
         service: clean(data.service),
         film: clean(data.film),
         shade: clean(data.shade),

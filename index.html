@@ -283,10 +283,36 @@
               </label>
             </div>
           </fieldset>
-          <div class="field" id="mobile-address-field" hidden>
-            <label for="mobile-address">Your address</label>
-            <input id="mobile-address" name="mobile_address" type="text" autocomplete="street-address"
-                   placeholder="Street, city, ZIP">
+          <!-- Only shown for mobile service. The parts are joined into one
+               address line (mobile_address) when the form is sent. -->
+          <div class="mobile-address" id="mobile-address-field" hidden>
+            <div class="field-row">
+              <div class="field field-wide">
+                <label for="addr-street">Street address</label>
+                <input id="addr-street" name="addr_street" type="text" autocomplete="address-line1"
+                       maxlength="120" placeholder="123 Main St">
+              </div>
+              <div class="field">
+                <label for="addr-unit">Apt / suite <span class="optional">(optional)</span></label>
+                <input id="addr-unit" name="addr_unit" type="text" autocomplete="address-line2" maxlength="40">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field field-wide">
+                <label for="addr-city">City</label>
+                <input id="addr-city" name="addr_city" type="text" autocomplete="address-level2" maxlength="60">
+              </div>
+              <div class="field">
+                <label for="addr-state">State</label>
+                <input id="addr-state" name="addr_state" type="text" autocomplete="address-level1"
+                       maxlength="20" value="IL">
+              </div>
+              <div class="field">
+                <label for="addr-zip">ZIP code</label>
+                <input id="addr-zip" name="addr_zip" type="text" autocomplete="postal-code" inputmode="numeric"
+                       maxlength="10" pattern="\d{5}(-\d{4})?" placeholder="60064">
+              </div>
+            </div>
           </div>
           <div class="field">
             <label for="service">Service</label>
