@@ -32,16 +32,6 @@ code {
 }
 .auth-card h1 { font-size: 2.2rem; }
 .auth-card .btn-block { margin-top: 6px; }
-.link-btn {
-  background: none;
-  border: 0;
-  padding: 4px 0;
-  margin-top: 6px;
-  color: var(--sky-deep);
-  font: 500 .9rem var(--font-body);
-  cursor: pointer;
-  text-decoration: underline;
-}
 
 /* ---------- Dashboard ---------- */
 .dash-head {

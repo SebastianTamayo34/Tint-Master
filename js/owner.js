@@ -67,16 +67,6 @@
     $("login-password").value = "";
   });
 
-  $("forgot-btn").addEventListener("click", async () => {
-    const email = $("login-email").value.trim();
-    if (!email) { setLoginStatus("Type your email above first, then click “Forgot password?”.", "err"); return; }
-    const redirectTo = window.location.href.split("#")[0].split("?")[0];
-    const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo });
-    setLoginStatus(error
-      ? "Couldn't send the reset email. Try again in a minute."
-      : "If that email belongs to an owner account, a reset link is on its way.", error ? "err" : "ok");
-  });
-
   $("reset-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const pw = $("new-password").value;

@@ -88,7 +88,7 @@ Back in Supabase, under **Authentication → URL Configuration**:
 - **Site URL**: your live address, e.g. `https://tintmaster.vercel.app`
 - **Redirect URLs**: add `https://tintmaster.vercel.app/owner` (and your custom domain later)
 
-This makes "Forgot password?" on the owner page send a link that comes back to the dashboard.
+The owner page has no "Forgot password?" link. To reset an owner's password, go to **Authentication → Users**, open the user's menu and choose **Send password recovery**. The emailed link comes back to the dashboard, where the owner sets a new password.
 
 ---
 
