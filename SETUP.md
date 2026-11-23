@@ -11,6 +11,7 @@ js/config.js          Supabase URL + public key (fill these in)
 js/main.js            Website scripts (menu, shade preview, booking form)
 js/owner.js           Dashboard scripts (sign in, list, status updates)
 supabase/schema.sql   Database tables + security rules (run once in Supabase)
+supabase/functions/   Edge Function that sends confirmation emails (step 8)
 vercel.json           Vercel settings (clean URLs, security headers)
 ```
 
@@ -90,6 +91,34 @@ Back in Supabase, under **Authentication → URL Configuration**:
 
 The owner page has no "Forgot password?" link. To reset an owner's password, go to **Authentication → Users**, open the user's menu and choose **Send password recovery**. The emailed link comes back to the dashboard, where the owner sets a new password.
 
+### 8. Confirmation emails (Gmail)
+
+When the owner sets an appointment to **Confirmed** (or adds one as Confirmed), the dashboard calls the `send-confirmation` Edge Function. It emails the customer a confirmation and sends the shop a copy, from the shop's Gmail account. Each appointment is emailed once. If a send fails, the appointment shows a **Send confirmation email** button to try again.
+
+**a. Create a Gmail App Password** (on the Google account that sends, e.g. tintmasterpro@gmail.com):
+
+1. Turn on **2-Step Verification**: [myaccount.google.com/security](https://myaccount.google.com/security).
+2. Open [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords), name it "Tint Master website", and click **Create**.
+3. Copy the 16-letter password. You won't see it again. This is **not** the normal Gmail password.
+
+**b. Add the secrets in Supabase:** **Edge Functions → Secrets** → add:
+
+| Name | Value |
+|---|---|
+| `GMAIL_USER` | `tintmasterpro@gmail.com` |
+| `GMAIL_APP_PASSWORD` | the 16-letter app password (spaces don't matter) |
+| `OWNER_EMAIL` | *optional:* where the shop's copy goes. Defaults to `GMAIL_USER` |
+
+**c. Deploy the function:** **Edge Functions → Deploy a new function → Via Editor**. Name it exactly `send-confirmation`, replace the sample code with the whole of `supabase/functions/send-confirmation/index.ts`, and click **Deploy**.
+(With the Supabase CLI instead: `supabase functions deploy send-confirmation`.)
+
+**d. Test it:** in the dashboard, confirm a test appointment that has your own email. The message above the calendar says whether the email went out.
+
+If it says the email didn't send:
+- *"Invalid JWT"* / 401: open the function's **Details** and turn **off** "Verify JWT with legacy secret", then try again. The function checks for an owner login itself, so this is safe.
+- *"Check the Gmail secrets"*: the app password or `GMAIL_USER` is wrong. Fix the secret; the function picks it up without redeploying.
+- Details are in the function's **Logs** tab.
+
 ---
 
 ## Testing locally
@@ -104,7 +133,7 @@ Then open the address it prints (for example http://localhost:3000) and `/owner.
 
 ## Notes and next steps
 
-- **Notifications:** new requests show up on the dashboard, which refreshes every 2 minutes, but nobody is emailed or texted yet. That can be added later with a Supabase Database Webhook or Edge Function connected to an email or SMS service.
+- **Notifications:** confirmed appointments are emailed to the customer and the shop (step 8). New requests only show up on the dashboard, which refreshes every 2 minutes; nobody is emailed about them yet.
 - **Double bookings:** once the owner confirms an appointment, that day and time shows as "(booked)" on the form and the database rejects new requests for it. Only one appointment can be confirmed per slot. Unconfirmed requests can still share a slot until the owner picks one.
 - **Spam:** the form is public. If junk submissions show up, add a CAPTCHA (e.g. Cloudflare Turnstile).
 - **Fallback:** if `js/config.js` is left empty, the booking form opens the customer's email app addressed to `BOOKING_EMAIL` instead.

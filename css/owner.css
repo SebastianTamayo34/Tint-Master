@@ -151,6 +151,19 @@ code {
 .appt-actions { display: grid; align-content: start; gap: 8px; }
 .appt-actions label { display: grid; gap: 4px; font-weight: 600; font-size: .82rem; }
 .appt-actions small { font-size: .78rem; }
+.confirm-sent { color: #137333; font-weight: 600; }
+.confirm-send {
+  justify-self: start;
+  font: 600 .8rem var(--font-body);
+  color: #b5480b;
+  background: #fff0e6;
+  border: 1px solid var(--orange);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.confirm-send:hover { background: #ffe3d1; }
+.confirm-send:disabled { opacity: .6; cursor: default; }
 
 .pill {
   font-size: .72rem;

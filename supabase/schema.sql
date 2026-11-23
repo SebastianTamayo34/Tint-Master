@@ -72,6 +72,10 @@ alter table public.appointments
   add constraint appointments_email_check
   check (email is null or (char_length(email) between 3 and 200 and email like '%@%'));
 
+-- When the "you're confirmed" email went out (null = not sent yet). Set by the
+-- send-confirmation Edge Function so each appointment is emailed only once.
+alter table public.appointments add column if not exists confirmation_sent_at timestamptz;
+
 create index if not exists appointments_date_idx
   on public.appointments (appt_date, start_hour);
 
@@ -148,6 +152,7 @@ create policy "public can request appointments"
   with check (
     status = 'new'
     and email is not null
+    and confirmation_sent_at is null
     and appt_date >  (now() at time zone 'America/Chicago')::date
     and appt_date <= (now() at time zone 'America/Chicago')::date + 90
     and start_hour not in (select public.taken_slots(appt_date))

@@ -229,8 +229,54 @@
           meta.map(([k, v]) => el("div", {}, el("dt", {}, k), el("dd", {}, v))))),
       el("div", { class: "appt-actions" },
         el("label", {}, el("span", {}, "Status"), select),
+        confirmationNote(r),
         el("small", { class: "muted" }, "Requested " + requested))
     );
+  }
+
+  // Confirmed appointments show whether the confirmation email went out,
+  // with a button to (re)try if it didn't.
+  function confirmationNote(r) {
+    if (r.status !== "confirmed") return null;
+    if (r.confirmation_sent_at) {
+      const sent = new Date(r.confirmation_sent_at).toLocaleString("en-US",
+        { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+      return el("small", { class: "confirm-sent" }, "✓ Confirmation emailed " + sent);
+    }
+    const btn = el("button", { type: "button", class: "confirm-send" }, "Send confirmation email");
+    btn.addEventListener("click", () => sendConfirmation(r, btn));
+    return btn;
+  }
+
+  const rerender = () => (mode === "calendar" ? renderCalendar() : render());
+
+  // Ask the send-confirmation Edge Function (supabase/functions) to email the
+  // customer and the shop. It only sends once per appointment.
+  async function sendConfirmation(r, btn) {
+    if (btn) btn.disabled = true;
+    message.textContent = `Sending confirmation email for ${r.name}…`;
+    const { data, error } = await db.functions.invoke("send-confirmation", { body: { id: r.id } });
+    if (btn) btn.disabled = false;
+    if (error || !data?.sent) {
+      let reason = data?.reason || "";
+      if (error) {
+        console.error("Confirmation email failed:", error);
+        // The function's own error message, when it sent one back
+        try { reason = (await error.context.json()).error; } catch { reason = ""; }
+      }
+      rerender();
+      message.textContent = data && !data.sent
+        ? `No email sent for ${r.name}: ${reason}.`
+        : `${r.name} is confirmed, but the confirmation email didn't send. ` +
+          (reason || "Is the send-confirmation function set up in Supabase (see SETUP.md)?") +
+          " Use “Send confirmation email” on the appointment to try again.";
+      return;
+    }
+    r.confirmation_sent_at = new Date().toISOString();
+    rerender();
+    message.textContent = data.customer
+      ? `Confirmation emailed to ${data.customer} and the shop.`
+      : `${r.name} has no email, so only the shop's copy was sent.`;
   }
 
   async function changeStatus(r, select) {
@@ -249,7 +295,8 @@
       return;
     }
     r.status = next;
-    if (mode === "calendar") renderCalendar(); else render();
+    rerender();
+    if (next === "confirmed" && !r.confirmation_sent_at) sendConfirmation(r);
   }
 
   /* ---------- Calendar view ---------- */
@@ -504,7 +551,8 @@
     const submitBtn = addForm.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     setAddMsg("Saving…");
-    const { error } = await db.from("appointments").insert(row);
+    // Owners can read appointments, so get the new id back for the confirmation email.
+    const { data: added, error } = await db.from("appointments").insert(row).select("id").single();
     submitBtn.disabled = false;
     if (error) {
       console.error("Couldn't add appointment:", error);
@@ -524,7 +572,14 @@
     if (!shownStatuses().includes(row.status)) statusFilter.value = row.status === "completed" ? "completed" : "active";
     closeAddForm();
     await loadCalendar();
-    message.textContent = `Added ${row.name}, ${row.time_slot}. · ` + message.textContent;
+    if (row.status === "confirmed") {
+      // Send from the freshly loaded row, so its card updates when the email goes out.
+      const fresh = calRows.find((x) => x.id === added.id) || { ...row, id: added.id };
+      await sendConfirmation(fresh);
+      message.textContent = `Added ${row.name}, ${row.time_slot}. ` + message.textContent;
+    } else {
+      message.textContent = `Added ${row.name}, ${row.time_slot}. · ` + message.textContent;
+    }
   });
   syncAddLocation();
 

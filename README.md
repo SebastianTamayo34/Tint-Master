@@ -37,11 +37,13 @@ A fast, standalone website with online appointment booking and a private owner d
    - a date, plus one of four 2-hour time slots (9–11, 11–1, 1–3, 3–5)
 2. **Booking storage**: each submission is saved to Supabase with status `new`.
 3. **Owner dashboard** (`owner.html`, served at `/owner`): an email and password login, then a month Calendar (the default view; click a day for its details) and an upcoming appointments List with today and next-7-days stats. A "Show" filter (new & confirmed by default, or completed & cancelled, etc.) applies to both. Each appointment's status can be set to New, Confirmed, Completed or Cancelled. In the Calendar, the owner can select a day and click **+ Add appointment** to book one by hand (phone calls, walk-ins). It defaults to Confirmed, and email is optional.
+4. **Confirmation emails**: when an appointment becomes Confirmed (status change or manual add), the dashboard calls the `send-confirmation` Edge Function, which emails the customer (if they gave an email) and the shop via Gmail SMTP. `confirmation_sent_at` makes it send once per appointment; failed sends show a retry button on the card.
 
 ## Tech stack
 
 - **Plain HTML, CSS and vanilla JS.** There's no framework, no bundler and no build step, and none should be added without asking.
 - **Supabase** provides the Postgres database, Row Level Security and Auth. The client is `@supabase/supabase-js@2.49.4`, loaded as a UMD script from jsDelivr.
+- **Supabase Edge Function** (`supabase/functions/send-confirmation`, Deno/TypeScript) sends confirmation emails through Gmail with nodemailer on port 465 (Supabase blocks 25 and 587). Its secrets are `GMAIL_USER`, `GMAIL_APP_PASSWORD` and an optional `OWNER_EMAIL`, set in Supabase, never in this repo. It runs with the caller's login token, so the owner-only RLS rules apply to it.
 - **Vercel** hosts the static files (`vercel.json`: clean URLs, security headers, noindex on `/owner`).
 - **GitHub** holds the source. Every push to `main` redeploys on Vercel.
 
@@ -56,6 +58,7 @@ js/config.js          Supabase URL + publishable key, fallback booking email
 js/main.js            Mobile nav, shade picker, booking form logic + insert
 js/owner.js           Auth, owner check, appointment list, status updates
 supabase/schema.sql   Tables, constraints, RLS policies; safe to re-run
+supabase/functions/send-confirmation/index.ts   Edge Function: confirmation emails
 vercel.json           Hosting config
 images/               Gallery photos of real jobs (gallery-*); hero + shade-picker images are still stock
 ```
@@ -106,5 +109,5 @@ Open `index.html` directly, or for sign-in to work reliably, serve the folder (`
 ## Open items / next steps
 
 - Replace the remaining stock photos (`hero-muscle-car.jpg` for the hero and link previews, `shade-view.jpg` for the shade picker) with real ones.
-- Notify the owner of new bookings by email or SMS, using a Supabase webhook or Edge Function.
+- Notify the owner of new (unconfirmed) bookings by email or SMS. The `send-confirmation` function's Gmail setup could be reused.
 - Add a CAPTCHA (e.g. Cloudflare Turnstile) if spam submissions appear.
