@@ -288,6 +288,51 @@ code {
 
 .cal-day { min-height: 3em; }
 .cal-hint { margin: 0; }
+.cal-day-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.cal-day-head .day-title { margin: 0; }
+.cal-day-head .btn:disabled { opacity: .5; cursor: default; transform: none; }
+.cal-closed-note { font-size: .88rem; }
+
+/* ---------- Add appointment (calendar day panel) ---------- */
+.add-form {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--orange);
+  border-radius: 14px;
+  padding: 18px 20px 16px;
+  margin-bottom: 16px;
+}
+.add-form-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+.add-form-head h3 { font-family: var(--font-body); font-weight: 700; font-size: 1.1rem; letter-spacing: 0; margin: 0; }
+.add-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--gray);
+  cursor: pointer;
+}
+.add-close:hover { border-color: var(--sky-deep); color: var(--ink); }
+.add-form .field { margin-bottom: 14px; }
+.add-form .field input,
+.add-form .field select { height: 44px; padding: 8px 12px; }
+.add-form .field textarea { padding: 8px 12px; }
+.add-form .field .check { padding: 10px 12px; }
+.add-form .addons { margin-bottom: 14px; }
+.add-form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.add-form-actions .btn { padding: 12px 22px; font-size: .95rem; }
+.add-form .btn-ghost { border-color: var(--line); color: var(--ink); }
+.add-form .btn-ghost:hover { border-color: var(--sky-deep); background: var(--white); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {

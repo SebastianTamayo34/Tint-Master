@@ -132,6 +132,120 @@
         </div>
         <div class="cal-grid" id="cal-grid"></div>
         <div class="cal-day" id="cal-day"></div>
+
+        <!-- "Add appointment" for the selected day. owner.js moves this into the
+             day panel when it's opened; it's kept as one element so typed-in
+             values survive the calendar re-rendering (e.g. auto-refresh). -->
+        <form class="add-form" id="add-form" novalidate hidden>
+          <div class="add-form-head">
+            <h3 id="add-title">New appointment</h3>
+            <button class="add-close" id="add-close" type="button" aria-label="Close without saving">×</button>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="add-time">Time</label>
+              <select id="add-time" required>
+                <option value="">Choose a time…</option>
+                <option value="9:00am – 11:00am" data-start="9">9:00am – 11:00am</option>
+                <option value="11:00am – 1:00pm" data-start="11">11:00am – 1:00pm</option>
+                <option value="1:00pm – 3:00pm" data-start="13">1:00pm – 3:00pm</option>
+                <option value="3:00pm – 5:00pm" data-start="15">3:00pm – 5:00pm</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="add-status">Status</label>
+              <select id="add-status">
+                <option value="confirmed" selected>Confirmed</option>
+                <option value="new">New, needs confirming</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="add-name">Customer name</label>
+            <input id="add-name" type="text" maxlength="100" autocomplete="off" required>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="add-phone">Phone</label>
+              <input id="add-phone" type="tel" maxlength="40" autocomplete="off" required>
+            </div>
+            <div class="field">
+              <label for="add-email">Email <span class="optional">(optional)</span></label>
+              <input id="add-email" type="email" maxlength="200" autocomplete="off">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="add-service">Service</label>
+              <select id="add-service">
+                <option value="">None (add-ons only)</option>
+                <option selected>Automotive window tint</option>
+                <option>Commercial building tint</option>
+                <option>Large vehicle / fleet tint</option>
+                <option>Not sure yet</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="add-location">Where</label>
+              <select id="add-location">
+                <option value="shop" selected>At the shop</option>
+                <option value="mobile">Mobile service</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" id="add-address-field" hidden>
+            <label for="add-address">Mobile service address</label>
+            <input id="add-address" type="text" maxlength="300" autocomplete="off"
+                   placeholder="123 Main St, North Chicago, IL 60064">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="add-film">Type of tint</label>
+              <select id="add-film">
+                <option value="">Not decided</option>
+                <option>CXP™ Nano-Hybrid Carbon</option>
+                <option>Ceramic</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="add-shade">Percentage</label>
+              <select id="add-shade">
+                <option value="">Not decided</option>
+                <option>5%</option>
+                <option>15%</option>
+                <option>20%</option>
+                <option>30%</option>
+                <option>35%</option>
+                <option>50%</option>
+              </select>
+            </div>
+          </div>
+          <fieldset class="field addons">
+            <legend>Add-ons</legend>
+            <label class="check">
+              <input type="checkbox" name="add-addons" value="Headlight / taillight tint">
+              <span>Headlight / taillight tint</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" name="add-addons" value="Front windshield strip">
+              <span>Front windshield strip</span>
+            </label>
+          </fieldset>
+          <div class="field">
+            <label for="add-details">Vehicle or building <span class="optional">(optional)</span></label>
+            <input id="add-details" type="text" maxlength="500" placeholder="e.g. 2022 Honda Civic">
+          </div>
+          <div class="field">
+            <label for="add-notes">Notes <span class="optional">(optional)</span></label>
+            <textarea id="add-notes" rows="2" maxlength="2000"></textarea>
+          </div>
+          <div class="add-form-actions">
+            <button class="btn btn-primary" type="submit">Save appointment</button>
+            <button class="btn btn-ghost" id="add-cancel" type="button">Cancel</button>
+          </div>
+          <p class="form-status" id="add-status-msg" role="status"></p>
+        </form>
       </div>
     </section>
   </main>

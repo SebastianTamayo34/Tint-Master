@@ -223,8 +223,8 @@
           el("h3", {}, r.name),
           el("span", { class: `pill pill-${r.status}` }, STATUS_LABELS[r.status] || r.status)),
         el("p", { class: "appt-contact" },
-          el("a", { href: phoneHref }, r.phone), " · ",
-          el("a", { href: "mailto:" + r.email }, r.email)),
+          el("a", { href: phoneHref }, r.phone),
+          r.email && [" · ", el("a", { href: "mailto:" + r.email }, r.email)]),
         el("dl", { class: "appt-meta" },
           meta.map(([k, v]) => el("div", {}, el("dt", {}, k), el("dd", {}, v))))),
       el("div", { class: "appt-actions" },
@@ -351,10 +351,182 @@
     }
     const items = byDay.get(selectedDay) || [];
     const nice = fromISO(selectedDay).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-    calDay.append(el("h2", { class: "day-title" }, nice, el("span", { class: "day-count" }, ` ${items.length}`)));
+    const sunday = fromISO(selectedDay).getDay() === 0;
+
+    const addBtn = el("button", { type: "button", class: "btn btn-primary btn-sm", disabled: sunday || addOpen },
+      "+ Add appointment");
+    addBtn.addEventListener("click", () => openAddForm());
+    calDay.append(el("div", { class: "cal-day-head" },
+      el("h2", { class: "day-title" }, nice, el("span", { class: "day-count" }, ` ${items.length}`)),
+      sunday ? el("span", { class: "muted cal-closed-note" }, "Closed Sundays") : addBtn));
+
+    // The add form follows the selected day; Sundays can't be booked.
+    if (addOpen && sunday) closeAddForm();
+    if (addOpen) {
+      if (addForm.dataset.date !== selectedDay) setAddFormDay(selectedDay);
+      calDay.append(addForm);
+    }
+
     if (!items.length) calDay.append(el("p", { class: "muted" }, "No appointments matching this filter on this day."));
     else items.forEach((r) => calDay.append(card(r)));
   }
+
+  /* ---------- Add an appointment by hand (calendar day panel) ---------- */
+  // For phone calls and walk-ins. Owners can book any non-Sunday date,
+  // including today and past days (to log work already done).
+  const addForm = $("add-form");
+  const addTime = $("add-time");
+  const addService = $("add-service");
+  const addLocation = $("add-location");
+  const addAddressField = $("add-address-field");
+  const addMsg = $("add-status-msg");
+  const SATURDAY_CLOSE = 15; // 3pm
+  let addOpen = false;
+  let addTaken = new Set(); // start hours already confirmed on the form's day
+
+  const setAddMsg = (msg, type) => { addMsg.textContent = msg; addMsg.className = "form-status " + (type || ""); };
+
+  // Commercial building tint is always mobile (matches the public form and the database).
+  const syncAddLocation = () => {
+    const commercial = addService.value === "Commercial building tint";
+    addLocation.querySelector('[value="shop"]').disabled = commercial;
+    if (commercial) addLocation.value = "mobile";
+    const mobile = addLocation.value === "mobile";
+    addAddressField.hidden = !mobile;
+    $("add-address").required = mobile;
+  };
+  addService.addEventListener("change", syncAddLocation);
+  addLocation.addEventListener("change", () => {
+    syncAddLocation();
+    if (addLocation.value === "mobile") $("add-address").focus();
+  });
+
+  // Saturday hides the 3pm slot; a slot confirmed for someone else can only
+  // be added as "new" (the database allows one confirmed booking per slot).
+  const syncAddSlots = () => {
+    const saturday = fromISO(addForm.dataset.date).getDay() === 6;
+    const confirming = $("add-status").value === "confirmed";
+    [...addTime.options].forEach((opt) => {
+      if (!opt.dataset.start) return;
+      const start = Number(opt.dataset.start);
+      const closed = saturday && start >= SATURDAY_CLOSE;
+      const taken = addTaken.has(start);
+      opt.hidden = closed;
+      opt.disabled = closed || (taken && confirming);
+      opt.textContent = opt.value + (taken && !closed ? " (already confirmed)" : "");
+      if (opt.disabled && opt.selected) addTime.value = "";
+    });
+  };
+  $("add-status").addEventListener("change", syncAddSlots);
+
+  async function setAddFormDay(iso) {
+    addForm.dataset.date = iso;
+    addTaken = new Set();
+    $("add-title").textContent = "New appointment · " +
+      fromISO(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    setAddMsg("");
+    syncAddSlots();
+    const { data, error } = await db.rpc("taken_slots", { p_date: iso });
+    if (addForm.dataset.date !== iso) return; // day changed while loading
+    if (error) { console.error("Couldn't load booked slots:", error); return; }
+    addTaken = new Set(data.map(Number));
+    syncAddSlots();
+  }
+
+  function openAddForm() {
+    addOpen = true;
+    addForm.hidden = false;
+    renderCalendar(); // places the form in the day panel and sets its day
+    $("add-name").focus();
+  }
+
+  function closeAddForm() {
+    addOpen = false;
+    addForm.hidden = true;
+    addForm.reset();
+    addForm.querySelectorAll(".field.invalid").forEach((f) => f.classList.remove("invalid"));
+    delete addForm.dataset.date;
+    setAddMsg("");
+    syncAddLocation();
+    if (addForm.parentNode === calDay) $("cal").append(addForm); // park it outside the panel
+  }
+
+  const closeAndRender = () => { closeAddForm(); renderCalendar(); };
+  $("add-close").addEventListener("click", closeAndRender);
+  $("add-cancel").addEventListener("click", closeAndRender);
+
+  addForm.addEventListener("input", (e) => {
+    const field = e.target.closest(".field");
+    if (field && e.target.checkValidity()) field.classList.remove("invalid");
+  });
+
+  addForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    syncAddLocation();
+    const addons = [...addForm.querySelectorAll('input[name="add-addons"]:checked')].map((b) => b.value);
+    addService.required = !addons.length; // a service or at least one add-on
+
+    let firstBad = null;
+    addForm.querySelectorAll("input, select, textarea").forEach((input) => {
+      const ok = input.checkValidity();
+      input.closest(".field")?.classList.toggle("invalid", !ok);
+      if (!ok && !firstBad) firstBad = input;
+    });
+    if (firstBad) {
+      setAddMsg(firstBad === addService
+        ? "Pick a service or check at least one add-on."
+        : "Fill in the time, name, phone" + (addLocation.value === "mobile" ? ", mobile address" : "") +
+          " and a valid email (or leave email blank).", "err");
+      firstBad.focus();
+      return;
+    }
+
+    const clean = (v) => (v && v.trim() ? v.trim() : null);
+    const mobile = addLocation.value === "mobile";
+    const row = {
+      name: $("add-name").value.trim(),
+      phone: $("add-phone").value.trim(),
+      email: clean($("add-email").value),
+      location: mobile ? "mobile" : "shop",
+      mobile_address: mobile ? clean($("add-address").value) : null,
+      service: clean(addService.value),
+      film: clean($("add-film").value),
+      shade: clean($("add-shade").value),
+      addons,
+      details: clean($("add-details").value),
+      message: clean($("add-notes").value),
+      appt_date: addForm.dataset.date,
+      start_hour: Number(addTime.selectedOptions[0].dataset.start),
+      time_slot: addTime.value,
+      status: $("add-status").value,
+    };
+
+    const submitBtn = addForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    setAddMsg("Saving…");
+    const { error } = await db.from("appointments").insert(row);
+    submitBtn.disabled = false;
+    if (error) {
+      console.error("Couldn't add appointment:", error);
+      if (error.code === "23505") {
+        // 23505 = unique index: the slot was confirmed for someone else meanwhile.
+        await setAddFormDay(row.appt_date);
+        setAddMsg("Another appointment is already confirmed for that time. Pick another time or save it as New.", "err");
+      } else if (error.code === "42501") {
+        setAddMsg("The database won't accept this yet. Re-run supabase/schema.sql in Supabase (see SETUP.md).", "err");
+      } else {
+        setAddMsg("Couldn't save the appointment. Check the details and try again.", "err");
+      }
+      return;
+    }
+
+    // Make sure the new appointment is visible under the current "Show" filter.
+    if (!shownStatuses().includes(row.status)) statusFilter.value = row.status === "completed" ? "completed" : "active";
+    closeAddForm();
+    await loadCalendar();
+    message.textContent = `Added ${row.name}, ${row.time_slot}. · ` + message.textContent;
+  });
+  syncAddLocation();
 
   const goMonth = (delta) => {
     calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth() + delta, 1);

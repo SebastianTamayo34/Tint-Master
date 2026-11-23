@@ -21,7 +21,9 @@ create table if not exists public.appointments (
   -- customer
   name           text not null check (char_length(trim(name)) between 1 and 100),
   phone          text not null check (char_length(trim(phone)) between 1 and 40),
-  email          text not null check (char_length(email) between 3 and 200 and email like '%@%'),
+  -- Optional only for appointments an owner adds by hand (phone calls, walk-ins).
+  -- The public insert policy below still requires one from the website form.
+  email          text check (email is null or (char_length(email) between 3 and 200 and email like '%@%')),
 
   -- where
   location       text not null default 'shop' check (location in ('shop', 'mobile')),
@@ -62,6 +64,13 @@ alter table public.appointments
   add constraint commercial_is_mobile
   check (service is distinct from 'Commercial building tint' or location = 'mobile')
   not valid;
+
+-- Email became optional when owners could add appointments from the dashboard.
+alter table public.appointments alter column email drop not null;
+alter table public.appointments drop constraint if exists appointments_email_check;
+alter table public.appointments
+  add constraint appointments_email_check
+  check (email is null or (char_length(email) between 3 and 200 and email like '%@%'));
 
 create index if not exists appointments_date_idx
   on public.appointments (appt_date, start_hour);
@@ -123,6 +132,7 @@ alter table public.owners       enable row level security;  -- no policies = no 
 
 -- Start clean so re-running this file doesn't stack duplicate rules.
 drop policy if exists "public can request appointments" on public.appointments;
+drop policy if exists "owners can add appointments"     on public.appointments;
 drop policy if exists "owners can view appointments"    on public.appointments;
 drop policy if exists "owners can update appointments"  on public.appointments;
 drop policy if exists "owners can delete appointments"  on public.appointments;
@@ -137,10 +147,20 @@ create policy "public can request appointments"
   to anon, authenticated
   with check (
     status = 'new'
+    and email is not null
     and appt_date >  (now() at time zone 'America/Chicago')::date
     and appt_date <= (now() at time zone 'America/Chicago')::date + 90
     and start_hour not in (select public.taken_slots(appt_date))
   );
+
+-- Owners may add appointments by hand from the dashboard calendar (phone calls,
+-- walk-ins) with any status, on any date, same-day included. The table's own
+-- rules still apply: closed Sundays, Saturday hours, mobile needs an address,
+-- and only one confirmed appointment per slot (the unique index).
+create policy "owners can add appointments"
+  on public.appointments for insert
+  to authenticated
+  with check ((select public.is_owner()));
 
 -- Only owners may see, change, or delete appointments.
 create policy "owners can view appointments"

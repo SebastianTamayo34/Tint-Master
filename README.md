@@ -36,7 +36,7 @@ A fast, standalone website with online appointment booking and a private owner d
    - vehicle or building details
    - a date, plus one of four 2-hour time slots (9–11, 11–1, 1–3, 3–5)
 2. **Booking storage**: each submission is saved to Supabase with status `new`.
-3. **Owner dashboard** (`owner.html`, served at `/owner`): an email and password login, then a month Calendar (the default view; click a day for its details) and an upcoming appointments List with today and next-7-days stats. A "Show" filter (new & confirmed by default, or completed & cancelled, etc.) applies to both. Each appointment's status can be set to New, Confirmed, Completed or Cancelled.
+3. **Owner dashboard** (`owner.html`, served at `/owner`): an email and password login, then a month Calendar (the default view; click a day for its details) and an upcoming appointments List with today and next-7-days stats. A "Show" filter (new & confirmed by default, or completed & cancelled, etc.) applies to both. Each appointment's status can be set to New, Confirmed, Completed or Cancelled. In the Calendar, the owner can select a day and click **+ Add appointment** to book one by hand (phone calls, walk-ins). It defaults to Confirmed, and email is optional.
 
 ## Tech stack
 
@@ -65,7 +65,7 @@ images/               Gallery photos of real jobs (gallery-*); hero + shade-pick
 ### Security (must not break)
 
 - `js/config.js` holds only the **public** values: the Project URL and the **publishable/anon** key. **Never** add the `service_role`/`sb_secret_` key to any file.
-- Security lives in the database, not the front end. The public (`anon`) role can only **INSERT** appointments with `status = 'new'` and can never read them. Only users listed in the `owners` table can SELECT, UPDATE or DELETE them, which is checked with `public.is_owner()`.
+- Security lives in the database, not the front end. The public (`anon`) role can only **INSERT** appointments with `status = 'new'` and can never read them. Only users listed in the `owners` table can SELECT, UPDATE or DELETE them, which is checked with `public.is_owner()`. Owners can also INSERT with any status and date (manual bookings), but the table constraints (Sundays, Saturday hours, mobile address, one confirmed per slot) still apply to them.
 - Public sign-ups are turned off in Supabase. Owner accounts are created by hand and added to `owners`.
 - In the dashboard, render customer-entered text only through the `el()` helper in `owner.js`, which uses textContent. Never use `innerHTML` with appointment data.
 
