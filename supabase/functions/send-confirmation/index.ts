@@ -1,14 +1,17 @@
 // =========================================================
 // Tint Master Inc — "send-confirmation" Supabase Edge Function
 //
-// Emails the customer and the shop when an appointment is confirmed.
-// The owner dashboard (js/owner.js) calls it right after an appointment
-// is set to Confirmed, or added as Confirmed.
+// Emails the customer and the shop when an appointment is confirmed or
+// cancelled. The owner dashboard (js/owner.js) calls it right after an
+// appointment is set to Confirmed or Cancelled, or added as Confirmed.
+// Request body: { id, kind: "confirmed" | "cancelled" } (kind defaults to "confirmed").
 //
 // Security: it runs as the signed-in person who called it (their login
 // token is passed through), so the database rules decide what it can
 // see. Only owners can read appointments, so only owners can send.
-// Each appointment is emailed at most once (appointments.confirmation_sent_at).
+// Each email goes out once (confirmation_sent_at / cancellation_sent_at);
+// a database trigger clears those when the status changes, so re-confirming
+// or re-cancelling later sends again.
 //
 // Secrets (Supabase → Edge Functions → Secrets), see SETUP.md:
 //   GMAIL_USER          the Gmail address that sends, e.g. tintmasterpro@gmail.com
@@ -89,8 +92,12 @@ Deno.serve(async (req) => {
   if (!gmailUser || !gmailPass) return reply({ error: "Email isn't set up: add the GMAIL_USER and GMAIL_APP_PASSWORD secrets." }, 500);
 
   let id: string | undefined;
-  try { ({ id } = await req.json()); } catch { /* handled below */ }
+  let kind = "confirmed";
+  try { ({ id, kind = "confirmed" } = await req.json()); } catch { /* handled below */ }
   if (!id) return reply({ error: "Missing appointment id." }, 400);
+  if (kind !== "confirmed" && kind !== "cancelled") return reply({ error: "kind must be confirmed or cancelled." }, 400);
+  const cancelled = kind === "cancelled";
+  const marker = cancelled ? "cancellation_sent_at" : "confirmation_sent_at";
 
   // Act as the caller, so the database's owner-only rules apply.
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -99,16 +106,17 @@ Deno.serve(async (req) => {
   });
 
   const { data: isOwner } = await db.rpc("is_owner");
-  if (!isOwner) return reply({ error: "Only owners can send confirmations." }, 403);
+  if (!isOwner) return reply({ error: "Only owners can send these emails." }, 403);
 
-  // Claim the appointment: mark it sent only if it's confirmed and not sent yet.
-  // Doing this first (in one statement) means two clicks can't send twice.
+  // Claim the appointment: mark it sent only if it has that status and this
+  // email hasn't gone out yet. Doing this first (in one statement) means two
+  // clicks can't send twice.
   const { data: claimed, error: claimError } = await db.from("appointments")
-    .update({ confirmation_sent_at: new Date().toISOString() })
-    .eq("id", id).eq("status", "confirmed").is("confirmation_sent_at", null)
+    .update({ [marker]: new Date().toISOString() })
+    .eq("id", id).eq("status", kind).is(marker, null)
     .select("*");
   if (claimError) { console.error(claimError); return reply({ error: "Couldn't read the appointment." }, 500); }
-  if (!claimed?.length) return reply({ sent: false, reason: "already sent, or not confirmed" });
+  if (!claimed?.length) return reply({ sent: false, reason: `already sent, or not ${kind}` });
   const appt = claimed[0] as Appt;
 
   // Gmail over SSL on port 465 (Supabase blocks outgoing ports 25 and 587).
@@ -119,20 +127,40 @@ Deno.serve(async (req) => {
   const from = `"${SHOP.name}" <${gmailUser}>`;
   const when = `${niceDate(appt.appt_date)}, ${appt.time_slot}`;
 
+  // Wording for each kind of email
+  const copy = cancelled
+    ? {
+      subject: `Your appointment has been cancelled: ${when}`,
+      intro: `Your window tint appointment with ${SHOP.name} has been cancelled.`,
+      introHtml: `Your window tint appointment with <strong>${SHOP.name}</strong> has been <strong>cancelled</strong>.`,
+      closing: `Want to book another time? Call or text us at ${SHOP.phone}, or reply to this email.`,
+      closingHtml: `Want to book another time? Call or text us at <a href="tel:+17732898367">${SHOP.phone}</a>, or reply to this email.`,
+      shopWord: "Cancelled",
+      sentWhat: "A cancellation notice",
+    }
+    : {
+      subject: `Your appointment is confirmed: ${when}`,
+      intro: `Your window tint appointment with ${SHOP.name} is confirmed.`,
+      introHtml: `Your window tint appointment with <strong>${SHOP.name}</strong> is <strong>confirmed</strong>.`,
+      closing: `Need to change or cancel? Call or text us at ${SHOP.phone}, or reply to this email.`,
+      closingHtml: `Need to change or cancel? Call or text us at <a href="tel:+17732898367">${SHOP.phone}</a>, or reply to this email.`,
+      shopWord: "Confirmed",
+      sentWhat: "A confirmation",
+    };
+  const shopNote = appt.email
+    ? `${copy.sentWhat} was emailed to ${appt.email}.`
+    : `The customer has no email, so only you got this.`;
+
   try {
     if (appt.email) {
       const rows = detailRows(appt, false);
       await mail.sendMail({
         from, to: appt.email, replyTo: ownerEmail,
-        subject: `Your appointment is confirmed: ${when}`,
-        text: `Hi ${appt.name},\n\nYour window tint appointment with ${SHOP.name} is confirmed.\n\n` +
-          asText(rows) +
-          `\n\nNeed to change or cancel? Call or text us at ${SHOP.phone}, or reply to this email.\n\n${SHOP.name}`,
+        subject: copy.subject,
+        text: `Hi ${appt.name},\n\n${copy.intro}\n\n` + asText(rows) + `\n\n${copy.closing}\n\n${SHOP.name}`,
         html: `<div style="font:15px/1.5 Arial,sans-serif;color:#0b0e11">` +
-          `<p>Hi ${esc(appt.name)},</p>` +
-          `<p>Your window tint appointment with <strong>${SHOP.name}</strong> is <strong>confirmed</strong>.</p>` +
-          asHtml(rows) +
-          `<p>Need to change or cancel? Call or text us at <a href="tel:+17732898367">${SHOP.phone}</a>, or reply to this email.</p>` +
+          `<p>Hi ${esc(appt.name)},</p><p>${copy.introHtml}</p>` + asHtml(rows) +
+          `<p>${copy.closingHtml}</p>` +
           `<p>${SHOP.name}<br><span style="color:#5b6470">${SHOP.address}</span></p></div>`,
       });
     }
@@ -140,18 +168,15 @@ Deno.serve(async (req) => {
     const rows = detailRows(appt, true);
     await mail.sendMail({
       from, to: ownerEmail,
-      subject: `Confirmed: ${appt.name}, ${when}`,
-      text: `This appointment is confirmed.` +
-        (appt.email ? ` A confirmation was emailed to ${appt.email}.` : ` The customer has no email, so only you got this.`) +
-        `\n\n` + asText(rows),
-      html: `<div style="font:15px/1.5 Arial,sans-serif;color:#0b0e11"><p>This appointment is confirmed. ` +
-        (appt.email ? `A confirmation was emailed to ${esc(appt.email)}.` : `The customer has no email, so only you got this.`) +
-        `</p>` + asHtml(rows) + `</div>`,
+      subject: `${copy.shopWord}: ${appt.name}, ${when}`,
+      text: `This appointment is ${kind}. ${shopNote}\n\n` + asText(rows),
+      html: `<div style="font:15px/1.5 Arial,sans-serif;color:#0b0e11"><p>This appointment is ${kind}. ` +
+        esc(shopNote) + `</p>` + asHtml(rows) + `</div>`,
     });
   } catch (err) {
     console.error("Sending failed:", err);
     // Un-mark it so the owner can try again from the dashboard.
-    await db.from("appointments").update({ confirmation_sent_at: null }).eq("id", id);
+    await db.from("appointments").update({ [marker]: null }).eq("id", id);
     return reply({ error: "The email couldn't be sent. Check the Gmail secrets in Supabase." }, 502);
   }
 

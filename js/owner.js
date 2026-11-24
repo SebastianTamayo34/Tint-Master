@@ -229,53 +229,65 @@
           meta.map(([k, v]) => el("div", {}, el("dt", {}, k), el("dd", {}, v))))),
       el("div", { class: "appt-actions" },
         el("label", {}, el("span", {}, "Status"), select),
-        confirmationNote(r),
+        emailNote(r),
         el("small", { class: "muted" }, "Requested " + requested))
     );
   }
 
-  // Confirmed appointments show whether the confirmation email went out,
-  // with a button to (re)try if it didn't.
-  function confirmationNote(r) {
-    if (r.status !== "confirmed") return null;
-    if (r.confirmation_sent_at) {
-      const sent = new Date(r.confirmation_sent_at).toLocaleString("en-US",
+  // Confirmed and cancelled appointments each get an email to the customer
+  // and the shop. The card shows whether it went out, with a button to
+  // (re)try if it didn't.
+  const EMAILS = {
+    confirmed: { marker: "confirmation_sent_at", word: "Confirmation", verb: "confirmed" },
+    cancelled: { marker: "cancellation_sent_at", word: "Cancellation", verb: "cancelled" },
+  };
+
+  function emailNote(r) {
+    const kind = EMAILS[r.status];
+    if (!kind) return null;
+    if (r[kind.marker]) {
+      const sent = new Date(r[kind.marker]).toLocaleString("en-US",
         { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-      return el("small", { class: "confirm-sent" }, "✓ Confirmation emailed " + sent);
+      return el("small", { class: "confirm-sent" }, `✓ ${kind.word} emailed ${sent}`);
     }
-    const btn = el("button", { type: "button", class: "confirm-send" }, "Send confirmation email");
-    btn.addEventListener("click", () => sendConfirmation(r, btn));
+    const btn = el("button", { type: "button", class: "confirm-send" }, `Send ${kind.word.toLowerCase()} email`);
+    btn.addEventListener("click", () => sendStatusEmail(r, btn));
     return btn;
   }
 
   const rerender = () => (mode === "calendar" ? renderCalendar() : render());
 
   // Ask the send-confirmation Edge Function (supabase/functions) to email the
-  // customer and the shop. It only sends once per appointment.
-  async function sendConfirmation(r, btn) {
+  // customer and the shop about r's current status (confirmed or cancelled).
+  // It only sends once per status change.
+  async function sendStatusEmail(r, btn) {
+    const status = r.status;
+    const kind = EMAILS[status];
+    if (!kind) return;
+    const word = kind.word.toLowerCase();
     if (btn) btn.disabled = true;
-    message.textContent = `Sending confirmation email for ${r.name}…`;
-    const { data, error } = await db.functions.invoke("send-confirmation", { body: { id: r.id } });
+    message.textContent = `Sending ${word} email for ${r.name}…`;
+    const { data, error } = await db.functions.invoke("send-confirmation", { body: { id: r.id, kind: status } });
     if (btn) btn.disabled = false;
     if (error || !data?.sent) {
       let reason = data?.reason || "";
       if (error) {
-        console.error("Confirmation email failed:", error);
+        console.error(`${kind.word} email failed:`, error);
         // The function's own error message, when it sent one back
         try { reason = (await error.context.json()).error; } catch { reason = ""; }
       }
       rerender();
       message.textContent = data && !data.sent
         ? `No email sent for ${r.name}: ${reason}.`
-        : `${r.name} is confirmed, but the confirmation email didn't send. ` +
+        : `${r.name} is ${kind.verb}, but the ${word} email didn't send. ` +
           (reason || "Is the send-confirmation function set up in Supabase (see SETUP.md)?") +
-          " Use “Send confirmation email” on the appointment to try again.";
+          ` Use “Send ${word} email” on the appointment to try again.`;
       return;
     }
-    r.confirmation_sent_at = new Date().toISOString();
+    r[kind.marker] = new Date().toISOString();
     rerender();
     message.textContent = data.customer
-      ? `Confirmation emailed to ${data.customer} and the shop.`
+      ? `${kind.word} emailed to ${data.customer} and the shop.`
       : `${r.name} has no email, so only the shop's copy was sent.`;
   }
 
@@ -283,7 +295,10 @@
     const previous = r.status;
     const next = select.value;
     select.disabled = true;
-    const { error } = await db.from("appointments").update({ status: next }).eq("id", r.id);
+    // Read the row back: the database clears the "emailed" markers when the
+    // status changes, so the card needs the fresh values.
+    const { data: updated, error } = await db.from("appointments")
+      .update({ status: next }).eq("id", r.id).select().single();
     select.disabled = false;
     if (error) {
       console.error(error);
@@ -294,9 +309,10 @@
         : "Couldn't update that appointment. Please try again.";
       return;
     }
-    r.status = next;
+    Object.assign(r, updated);
     rerender();
-    if (next === "confirmed" && !r.confirmation_sent_at) sendConfirmation(r);
+    const kind = EMAILS[r.status];
+    if (kind && !r[kind.marker]) sendStatusEmail(r);
   }
 
   /* ---------- Calendar view ---------- */
@@ -575,7 +591,7 @@
     if (row.status === "confirmed") {
       // Send from the freshly loaded row, so its card updates when the email goes out.
       const fresh = calRows.find((x) => x.id === added.id) || { ...row, id: added.id };
-      await sendConfirmation(fresh);
+      await sendStatusEmail(fresh);
       message.textContent = `Added ${row.name}, ${row.time_slot}. ` + message.textContent;
     } else {
       message.textContent = `Added ${row.name}, ${row.time_slot}. · ` + message.textContent;

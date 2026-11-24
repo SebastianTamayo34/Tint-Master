@@ -91,9 +91,11 @@ Back in Supabase, under **Authentication → URL Configuration**:
 
 The owner page has no "Forgot password?" link. To reset an owner's password, go to **Authentication → Users**, open the user's menu and choose **Send password recovery**. The emailed link comes back to the dashboard, where the owner sets a new password.
 
-### 8. Confirmation emails (Gmail)
+### 8. Confirmation and cancellation emails (Gmail)
 
-When the owner sets an appointment to **Confirmed** (or adds one as Confirmed), the dashboard calls the `send-confirmation` Edge Function. It emails the customer a confirmation and sends the shop a copy, from the shop's Gmail account. Each appointment is emailed once. If a send fails, the appointment shows a **Send confirmation email** button to try again.
+When the owner sets an appointment to **Confirmed** (or adds one as Confirmed) or to **Cancelled**, the dashboard calls the `send-confirmation` Edge Function. It emails the customer a confirmation or cancellation notice and sends the shop a copy, from the shop's Gmail account. Each email goes out once per status change: confirming again after a cancel (or moving back to New) sends a fresh confirmation, but Confirmed → Completed sends nothing. If a send fails, the appointment shows a **Send confirmation email** / **Send cancellation email** button to try again.
+
+After changing `supabase/functions/send-confirmation/index.ts`, redeploy it: open the function in **Edge Functions**, go to its **Code** tab, paste in the new file and click **Deploy**.
 
 **a. Create a Gmail App Password** (on the Google account that sends, e.g. tintmasterpro@gmail.com):
 
@@ -133,7 +135,7 @@ Then open the address it prints (for example http://localhost:3000) and `/owner.
 
 ## Notes and next steps
 
-- **Notifications:** confirmed appointments are emailed to the customer and the shop (step 8). New requests only show up on the dashboard, which refreshes every 2 minutes; nobody is emailed about them yet.
+- **Notifications:** confirmed and cancelled appointments are emailed to the customer and the shop (step 8). New requests only show up on the dashboard, which refreshes every 2 minutes; nobody is emailed about them yet.
 - **Double bookings:** once the owner confirms an appointment, that day and time shows as "(booked)" on the form and the database rejects new requests for it. Only one appointment can be confirmed per slot. Unconfirmed requests can still share a slot until the owner picks one.
 - **Spam:** the form is public. If junk submissions show up, add a CAPTCHA (e.g. Cloudflare Turnstile).
 - **Fallback:** if `js/config.js` is left empty, the booking form opens the customer's email app addressed to `BOOKING_EMAIL` instead.

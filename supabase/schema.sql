@@ -72,9 +72,33 @@ alter table public.appointments
   add constraint appointments_email_check
   check (email is null or (char_length(email) between 3 and 200 and email like '%@%'));
 
--- When the "you're confirmed" email went out (null = not sent yet). Set by the
--- send-confirmation Edge Function so each appointment is emailed only once.
+-- When the "you're confirmed" / "cancelled" emails went out (null = not sent).
+-- Set by the send-confirmation Edge Function so each is sent only once.
 alter table public.appointments add column if not exists confirmation_sent_at timestamptz;
+alter table public.appointments add column if not exists cancellation_sent_at timestamptz;
+
+-- Clear those markers when the status moves on, so the email can go out again:
+--   • back to New or Cancelled → a later re-confirm sends a fresh confirmation
+--   • anything but Cancelled   → a later re-cancel sends a fresh cancellation
+-- Confirmed → Completed keeps the marker, so finishing a job doesn't resend.
+create or replace function public.reset_email_markers()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.status is distinct from old.status then
+    if new.status in ('new', 'cancelled') then new.confirmation_sent_at := null; end if;
+    if new.status <> 'cancelled' then new.cancellation_sent_at := null; end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists reset_email_markers on public.appointments;
+create trigger reset_email_markers
+  before update on public.appointments
+  for each row execute function public.reset_email_markers();
 
 create index if not exists appointments_date_idx
   on public.appointments (appt_date, start_hour);
@@ -153,6 +177,7 @@ create policy "public can request appointments"
     status = 'new'
     and email is not null
     and confirmation_sent_at is null
+    and cancellation_sent_at is null
     and appt_date >  (now() at time zone 'America/Chicago')::date
     and appt_date <= (now() at time zone 'America/Chicago')::date + 90
     and start_hour not in (select public.taken_slots(appt_date))
